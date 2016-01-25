@@ -60,26 +60,22 @@ namespace BDFPatcher
 
                     progressBar.Minimum = 0;
 
-                    Binding maxBinding = new Binding();
-                    maxBinding.Source = newFile;
-                    maxBinding.Path = new PropertyPath("Size");
-                    maxBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-                    maxBinding.Mode = BindingMode.OneWay;
-                    BindingOperations.SetBinding(progressBar, ProgressBar.MaximumProperty, maxBinding);
-
-                    Binding curBinding = new Binding();
-                    curBinding.Source = newFile;
-                    curBinding.Path = new PropertyPath("Read");
-                    curBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-                    curBinding.Mode = BindingMode.OneWay;
-                    BindingOperations.SetBinding(progressBar, ProgressBar.ValueProperty, curBinding);
+                    bindProgressBarWithBDFFile(progressBar, ProgressBar.MaximumProperty, "Size", newFile);
+                    bindProgressBarWithBDFFile(progressBar, ProgressBar.ValueProperty, "Read", newFile);
 
                     BackgroundWorker bw = new BackgroundWorker();
                     workerList.Add(bw);
                     bw.DoWork += (obj, args) => 
                     {
                         App.Current.Dispatcher.Invoke(new ThreadStart(delegate { this.stackPanel.Children.Add(progressBar); }));
-                        newFile.readFromFile(fileName);
+                        try
+                        {
+                            newFile.readFromFile(fileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            //
+                        }
                         App.Current.Dispatcher.Invoke(new ThreadStart(delegate { this.stackPanel.Children.Remove(progressBar); }));
                     };
 
@@ -123,19 +119,8 @@ namespace BDFPatcher
 
                 progressBar.Minimum = 0;
 
-                Binding maxBinding = new Binding();
-                maxBinding.Source = newFile;
-                maxBinding.Path = new PropertyPath("Size");
-                maxBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-                maxBinding.Mode = BindingMode.OneWay;
-                BindingOperations.SetBinding(progressBar, ProgressBar.MaximumProperty, maxBinding);
-
-                Binding curBinding = new Binding();
-                curBinding.Source = newFile;
-                curBinding.Path = new PropertyPath("Wrote");
-                curBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-                curBinding.Mode = BindingMode.OneWay;
-                BindingOperations.SetBinding(progressBar, ProgressBar.ValueProperty, curBinding);
+                bindProgressBarWithBDFFile(progressBar, ProgressBar.MaximumProperty, "Size", newFile);
+                bindProgressBarWithBDFFile(progressBar, ProgressBar.ValueProperty, "Wrote", newFile);
 
                 bw.DoWork += (obj, args) => 
                 {
@@ -153,6 +138,16 @@ namespace BDFPatcher
                 bw.RunWorkerAsync();
 
             }
+        }
+
+        private void bindProgressBarWithBDFFile(ProgressBar progressBar, DependencyProperty property, string propertyName, BDFFile file)
+        {
+            Binding binding = new Binding();
+            binding.Source = file;
+            binding.Path = new PropertyPath(propertyName);
+            binding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
+            binding.Mode = BindingMode.OneWay;
+            BindingOperations.SetBinding(progressBar, property, binding);
         }
 
         private bool allWorkersAreDone()

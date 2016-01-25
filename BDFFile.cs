@@ -20,7 +20,7 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                //?????
+                throw e;
             }
         }
 
@@ -35,7 +35,7 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                //????
+                throw e;
             }
         }
 
@@ -487,6 +487,5 @@ namespace BDFPatcher
                 handler(this, new PropertyChangedEventArgs(name));
             }
         }
-
     }
 }
