@@ -8,13 +8,9 @@ using System.IO;
 namespace BDFPatcher
 {
     class BDFFile : INotifyPropertyChanged
-    {
-        private string fileName;
-
+    { 
         public void readFromFile(string path)
         {
-            fileName = path;
-
             try
             {
                 reader = new BinaryReader(File.OpenRead(path));
@@ -140,6 +136,7 @@ namespace BDFPatcher
                 header.ChannelCount = readStrInt(4);
 
 
+                Size = header.RecordCount;
 
                 channels = new BDFChannel[header.ChannelCount];
 
@@ -195,19 +192,6 @@ namespace BDFPatcher
                 }
 
                 reader.ReadBytes(32 * header.ChannelCount);
-
-                if (header.RecordCount == -1)
-                {
-                    int bytesPerDataRecord = 0;
-                    for (int i = 0; i < header.ChannelCount; i++)
-                    {
-                        bytesPerDataRecord += (channels[i].Header.SamplesPerDataRecord * 3);
-                    }
-
-                    header.RecordCount = ((int)(new FileInfo(fileName)).Length - header.HeaderByteCount) / bytesPerDataRecord;
-                }
-
-                Size = header.RecordCount;
             }
             catch (Exception e)
             {
@@ -445,18 +429,11 @@ namespace BDFPatcher
         }
 
         private BDFChannel[] channels;
+        private BDFHeader header;
         private BinaryReader reader;
         private BinaryWriter writer;
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-
-        private BDFHeader header;
-        public BDFHeader Header
-        {
-            get;
-            private set;
-        }
 
         private int _size;
         public int Size
