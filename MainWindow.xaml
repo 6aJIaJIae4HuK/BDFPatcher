@@ -7,8 +7,17 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="500" Width="500">
     <Grid>
-        <Button x:Name="openFilesButton" Content="Открыть" HorizontalAlignment="Left" Margin="150,75,0,0" VerticalAlignment="Top" Width="75" Click="openFiles"/>
-        <Button x:Name="patchAndSaveFileButton" Content="Сохранить" HorizontalAlignment="Left" Margin="150,170,0,0" VerticalAlignment="Top" Width="75" Click="patchAndSaveFile"/>
-
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="5*"/>
+        </Grid.RowDefinitions>
+        <Button Grid.Column="0" Grid.Row="0" x:Name="openFilesButton" Content="Открыть" Click="openFiles"/>
+        <Button Grid.Column="0" Grid.Row="1" x:Name="patchAndSaveFileButton" Content="Сохранить" Click="patchAndSaveFile"/>
+        <StackPanel x:Name="stackPanel" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Orientation="Vertical" Width="Auto" Height="Auto"/>
     </Grid>
 </Window>

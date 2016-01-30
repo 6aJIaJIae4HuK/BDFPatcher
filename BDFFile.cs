@@ -1,24 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.IO;
 
 namespace BDFPatcher
 {
-    class BDFFile
-    { 
+    class BDFFile : INotifyPropertyChanged
+    {
+        private string fileName;
+
         public void readFromFile(string path)
         {
+            fileName = path;
+
             try
             {
                 reader = new BinaryReader(File.OpenRead(path));
                 readHeader();
                 readBody();
+                reader.Close();
             }
             catch (Exception e)
             {
-                //?????
+                throw e;
             }
         }
 
@@ -29,10 +35,11 @@ namespace BDFPatcher
                 writer = new BinaryWriter(File.OpenWrite(path));
                 writeHeader();
                 writeBody();
+                writer.Close();
             }
             catch (Exception e)
             {
-                //????
+                throw e;
             }
         }
 
@@ -52,6 +59,7 @@ namespace BDFPatcher
                 header.HeaderByteCount = 256 * (header.ChannelCount + 1);
                 header.StartDateTime = files.First().header.StartDateTime;
                 header.RecordCount = files.Last().header.RecordCount + (int)((files.Last().header.StartDateTime - files.First().header.StartDateTime).TotalSeconds);
+
 
                 channels = new BDFChannel[header.ChannelCount];
                 for (int i = 0; i < channels.Length; i++)
@@ -74,7 +82,7 @@ namespace BDFPatcher
                     
                     foreach (BDFFile file in files)
                     {
-                        Array.Copy(file.channels[i].Data, 0, channels[i].Data, (int)((file.header.StartDateTime - header.StartDateTime).TotalSeconds),file.channels[i].Data.Length);
+                        Array.Copy(file.channels[i].Data, 0, channels[i].Data, (int)((file.header.StartDateTime - header.StartDateTime).TotalSeconds) * channels[i].Header.SamplesPerDataRecord, file.channels[i].Data.Length);
                     }
                 }
                 
@@ -130,6 +138,9 @@ namespace BDFPatcher
                 header.RecordCount = readStrInt(8);
                 header.SecondsPerDataRecord = readStrInt(8);
                 header.ChannelCount = readStrInt(4);
+
+
+
                 channels = new BDFChannel[header.ChannelCount];
 
                 for (int i = 0; i < header.ChannelCount; i++)
@@ -184,6 +195,19 @@ namespace BDFPatcher
                 }
 
                 reader.ReadBytes(32 * header.ChannelCount);
+
+                if (header.RecordCount == -1)
+                {
+                    int bytesPerDataRecord = 0;
+                    for (int i = 0; i < header.ChannelCount; i++)
+                    {
+                        bytesPerDataRecord += (channels[i].Header.SamplesPerDataRecord * 3);
+                    }
+
+                    header.RecordCount = ((int)(new FileInfo(fileName)).Length - header.HeaderByteCount) / bytesPerDataRecord;
+                }
+
+                Size = header.RecordCount;
             }
             catch (Exception e)
             {
@@ -207,6 +231,7 @@ namespace BDFPatcher
                         channels[j].Data[i * channels[j].Header.SamplesPerDataRecord + k] = readByteInt(3);
                     }
                 }
+                Read++;
             }
         }
 
@@ -222,7 +247,9 @@ namespace BDFPatcher
             writeStrInt(header.RecordCount, 8);
             writeStrInt(header.SecondsPerDataRecord, 8);
             writeStrInt(header.ChannelCount, 4);
-            
+
+            Size = header.RecordCount;
+
             for (int i = 0; i < header.ChannelCount; i++)
             {
                 writeStr(channels[i].Header.Label, 16);
@@ -285,6 +312,7 @@ namespace BDFPatcher
                         writeByteInt(channels[j].Data[i * channels[j].Header.SamplesPerDataRecord + k], 3);
                     }
                 }
+                Wrote++;
             }
         }
 
@@ -395,7 +423,7 @@ namespace BDFPatcher
                 res = buffer[byteCount - 1];
                 for (int i = 0; i < byteCount - 1; i++)
                 {
-                    res += (buffer[byteCount - (i + 2)] + 256 * res);
+                    res = (buffer[byteCount - (i + 2)] + 256 * res);
                 }
             }
             catch (IOException e)
@@ -417,8 +445,70 @@ namespace BDFPatcher
         }
 
         private BDFChannel[] channels;
-        private BDFHeader header;
         private BinaryReader reader;
         private BinaryWriter writer;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+
+        private BDFHeader header;
+        public BDFHeader Header
+        {
+            get;
+            private set;
+        }
+
+        private int _size;
+        public int Size
+        {
+            get
+            {
+                return _size;
+            }
+
+            private set
+            {
+                _size = value;
+                OnPropertyChanged("Size");
+            }
+        }
+
+        private int _curRead;
+        public int Read
+        {
+            get
+            {
+                return _curRead;
+            }
+
+            private set
+            {
+                _curRead = value;
+                OnPropertyChanged("Read");
+            }
+        }
+
+        private int _curWrote;
+        public int Wrote
+        {
+            get
+            {
+                return _curWrote;
+            }
+            private set
+            {
+                _curWrote = value;
+                OnPropertyChanged("Wrote");
+            }
+        }
+
+        protected void OnPropertyChanged(string name)
+        {
+            PropertyChangedEventHandler handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, new PropertyChangedEventArgs(name));
+            }
+        }
     }
 }
