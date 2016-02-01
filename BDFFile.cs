@@ -9,8 +9,19 @@ namespace BDFPatcher
 {
     class BDFFile : INotifyPropertyChanged
     { 
+        public BDFFile()
+        {
+
+        }
+
+        private BDFFile(string fileName) //Is this correct??
+        {
+            readFromFile(fileName);
+        }
+
         public void readFromFile(string path)
         {
+            fileName = path;
             try
             {
                 reader = new BinaryReader(File.OpenRead(path));
@@ -135,9 +146,6 @@ namespace BDFPatcher
                 header.SecondsPerDataRecord = readStrInt(8);
                 header.ChannelCount = readStrInt(4);
 
-
-                Size = header.RecordCount;
-
                 channels = new BDFChannel[header.ChannelCount];
 
                 for (int i = 0; i < header.ChannelCount; i++)
@@ -192,6 +200,20 @@ namespace BDFPatcher
                 }
 
                 reader.ReadBytes(32 * header.ChannelCount);
+
+                if (header.RecordCount == -1)
+                {
+                    int bytesPerDataRecord = 0;
+                    for (int i = 0; i < header.ChannelCount; i++)
+                    {
+                        bytesPerDataRecord += (channels[i].Header.SamplesPerDataRecord * 3);
+                    }
+
+                    header.RecordCount = ((int)(new FileInfo(fileName)).Length - header.HeaderByteCount) / bytesPerDataRecord;
+                }
+                
+                Size = header.RecordCount;
+
             }
             catch (Exception e)
             {
@@ -429,11 +451,21 @@ namespace BDFPatcher
         }
 
         private BDFChannel[] channels;
-        private BDFHeader header;
         private BinaryReader reader;
         private BinaryWriter writer;
+        private string fileName;
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        private BDFHeader header;
+        public BDFHeader Header
+        {
+            get
+            {
+                return header;
+            }
+        }
+
 
         private int _size;
         public int Size
