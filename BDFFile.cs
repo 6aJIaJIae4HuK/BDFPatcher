@@ -19,7 +19,30 @@ namespace BDFPatcher
             readFromFile(fileName);
         }
 
-        public void readFromFile(string path)
+        public bool tryReadFromFile(string path)
+        {
+            bool res;
+            try
+            {
+                readFromFile(path);
+                res = true;
+            }
+            catch (BDFHeaderReadException e)
+            {
+                Exception ex = e as Exception;
+                while (ex != null)
+                {
+                    System.Console.WriteLine(ex.Message);
+                    ex = ex.InnerException;
+                    if (ex != null)
+                        System.Console.WriteLine("--------------------");
+                }
+                res = false;
+            }
+            return res;
+        }
+
+        private void readFromFile(string path)
         {
             fileName = path;
             try
@@ -31,12 +54,13 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                throw e;
+                throw new BDFReadException("Cannot read file: " + fileName, e);
             }
         }
 
         public void saveToFile(string path)
         {
+            fileName = path;
             try
             {
                 writer = new BinaryWriter(File.OpenWrite(path));
@@ -46,16 +70,46 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                throw e;
+                throw new BDFSaveException("Cannot save to file", e);
             }
         }
 
-        public void generateFromFiles(List<BDFFile> files)
+        public bool tryGenerateFromFiles(List<BDFFile> files)
+        {
+            bool res;
+            try
+            {
+                generateFromFiles(files);
+                res = true;
+            }
+            catch (BDFPatchException e)
+            {
+                Exception ex = e as Exception;
+                while (ex != null)
+                {
+                    System.Console.WriteLine(ex.Message);
+                    ex = ex.InnerException;
+                    if (ex != null)
+                        System.Console.WriteLine("--------------------");
+                }
+                res = false;
+            }
+            return res;
+        }
+
+        private void generateFromFiles(List<BDFFile> files)
         {
             try
             {
-                if (!areCompatible(files))
-                    throw new ArgumentException("File are not compatible!");
+                try
+                {
+                    checkAreCompatible(files);
+                }
+                catch (Exception e)
+                {
+                    throw new BDFIncompatibleFilesException("Files are not compatible", e);    
+                }
+
                 files.Sort((x, y) => DateTime.Compare(x.header.StartDateTime, y.header.StartDateTime));
                 header = new BDFHeader();
                 header.DataFormat = files.First().header.DataFormat;
@@ -96,11 +150,11 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                throw e;
+                throw new BDFPatchException("Cannot patch files!", e);
             }
         }
 
-        private bool areCompatible(List<BDFFile> files)
+        private void checkAreCompatible(List<BDFFile> files)
         {
             if (files == null)
                 throw new ArgumentNullException("Array must be initialized!");
@@ -113,18 +167,17 @@ namespace BDFPatcher
                 if (file == null)
                     throw new ArgumentNullException("All files bust be initialized!");
                 if (!files.First().header.DataFormat.Equals(file.header.DataFormat))
-                    return false;
+                    throw new Exception(String.Format("Not equal data format in files {0} and {1}", files.First().FileName, file.FileName));
                 if (files.First().header.SecondsPerDataRecord != file.header.SecondsPerDataRecord)
-                    return false;
+                    throw new Exception(String.Format("Not equal seconds per data record in files {0} and {1}", files.First().FileName, file.FileName));
                 if (files.First().header.ChannelCount != file.header.ChannelCount)
-                    return false;
-                for (int i = 0; i < files[0].header.ChannelCount; i++)
+                    throw new Exception(String.Format("Not equal channel count in files {0} and {1}", files.First().FileName, file.FileName));
+                for (int i = 0; i < file.header.ChannelCount; i++)
                 {
                     if (!files.First().channels[i].Header.Equals(file.channels[i].Header))
-                        return false;
+                        throw new Exception(String.Format("Not equal header in channel {0} in files {1} and {2}", i, files.First().FileName, file.FileName));
                 }
             }
-            return true;
         }
 
         private void readHeader()
@@ -217,27 +270,34 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                throw e;
+                throw new BDFReadException("Cannot read header from file " + fileName, e);
             }
         }
 
         private void readBody()
         {
-            for (int i = 0; i < header.ChannelCount; i++)
+            try
             {
-                channels[i].Data = new int[channels[i].Header.SamplesPerDataRecord * header.RecordCount];
-            }
-
-            for (int i = 0; i < header.RecordCount; i++)
-            {
-                for (int j = 0; j < header.ChannelCount; j++)
+                for (int i = 0; i < header.ChannelCount; i++)
                 {
-                    for (int k = 0; k < channels[j].Header.SamplesPerDataRecord; k++)
-                    {
-                        channels[j].Data[i * channels[j].Header.SamplesPerDataRecord + k] = readByteInt(3);
-                    }
+                    channels[i].Data = new int[channels[i].Header.SamplesPerDataRecord * header.RecordCount];
                 }
-                Read++;
+
+                for (int i = 0; i < header.RecordCount; i++)
+                {
+                    for (int j = 0; j < header.ChannelCount; j++)
+                    {
+                        for (int k = 0; k < channels[j].Header.SamplesPerDataRecord; k++)
+                        {
+                            channels[j].Data[i * channels[j].Header.SamplesPerDataRecord + k] = readByteInt(3);
+                        }
+                    }
+                    Read++;
+                }
+            }
+            catch (Exception e)
+            {
+                throw new BDFBodyReadException("Cannot read body from file " + fileName, e);
             }
         }
 
@@ -453,9 +513,17 @@ namespace BDFPatcher
         private BDFChannel[] channels;
         private BinaryReader reader;
         private BinaryWriter writer;
-        private string fileName;
 
         public event PropertyChangedEventHandler PropertyChanged;
+        
+        private string fileName = "";
+        public string FileName
+        {
+            get
+            {
+                return fileName;
+            }
+        }
 
         private BDFHeader header;
         public BDFHeader Header

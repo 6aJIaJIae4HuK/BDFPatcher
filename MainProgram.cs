@@ -41,15 +41,17 @@ namespace BDFPatcher
 
                 foreach (string patient in patients.Keys)
                 {
-                    if (patient.Equals("Asustek")) ;
-                        //continue;
+
 
                     List<BDFFile> BDFFiles = new List<BDFFile>();
                     foreach (string fileName in patients[patient])
                     {
-                        BDFFiles.Add(new BDFFile());
+                        BDFFile newFile = new BDFFile();
                         Console.WriteLine("Reading file {0}", fileName.Substring(fileName.LastIndexOf('\\') + 1));
-                        BDFFiles.Last().readFromFile(fileName);
+                        if (newFile.tryReadFromFile(fileName))
+                            BDFFiles.Add(newFile);
+                        else
+                            System.Console.WriteLine("FAILED TO READ " + fileName);
                     }
 
                     BDFFiles.Sort((x, y) => DateTime.Compare(x.Header.StartDateTime, y.Header.StartDateTime));
@@ -78,7 +80,7 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                //???
+                System.Console.WriteLine(e.ToString());
             }
         }
 
@@ -107,6 +109,7 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
+                System.Console.WriteLine(e.Message);
                 throw e;
             }
         }
@@ -157,12 +160,30 @@ namespace BDFPatcher
         private void saveSubList(string patientName, List<BDFFile> files)
         {
             BDFFile newFile = new BDFFile();
-            newFile.generateFromFiles(files);
-            string newFileFullPath = sourcePath + patientName + '\\' + generateFileName(newFile.Header.StartDateTime, patientName);
+            bool status;
+            status = newFile.tryGenerateFromFiles(files);
+            
+            if (!status)
+            {
+                System.Console.WriteLine("Cannot patch following files: ");
+                foreach (BDFFile file in files)
+                {
+                    System.Console.WriteLine("\t" + file.FileName);
+                }
+            }
 
-            System.IO.FileInfo fileInfo = new System.IO.FileInfo(newFileFullPath);
-            fileInfo.Directory.Create();
-            newFile.saveToFile(fileInfo.FullName);
+            string newFileFullPath = targetPath + patientName + '\\' + generateFileName(newFile.Header.StartDateTime, patientName);
+
+            try
+            {
+                System.IO.FileInfo fileInfo = new System.IO.FileInfo(newFileFullPath);
+                fileInfo.Directory.Create();
+                newFile.saveToFile(fileInfo.FullName);
+            }
+            catch (BDFSaveException)
+            {
+                System.Console.WriteLine("Cannot save patched file " + newFile.FileName);
+            }
         }
     }
 }
