@@ -14,9 +14,10 @@ namespace BDFPatcher
 
         }
 
-        private BDFFile(string fileName) //Is this correct??
+        public BDFFile(string fileName) //Is this correct??
         {
-            readFromFile(fileName);
+            reader = new BinaryReader(File.OpenRead(fileName));
+            //readFromFile(fileName);
         }
 
         public bool tryReadFromFile(string path)
@@ -47,7 +48,8 @@ namespace BDFPatcher
             fileName = path;
             try
             {
-                reader = new BinaryReader(File.OpenRead(path));
+                if (reader == null)
+                    reader = new BinaryReader(File.OpenRead(path));
                 readHeader();
                 readBody();
                 reader.Close();
@@ -250,6 +252,14 @@ namespace BDFPatcher
                 for (int i = 0; i < header.ChannelCount; i++)
                 {
                     channels[i].Header.SamplesPerDataRecord = readStrInt(8);
+                }
+
+
+                header.ChannelHeaders = new BDFChannelHeader[header.ChannelCount];
+
+                for (int i = 0; i < header.ChannelCount; i++)
+                {
+                    header.ChannelHeaders[i] = channels[i].Header;
                 }
 
                 reader.ReadBytes(32 * header.ChannelCount);
@@ -510,9 +520,8 @@ namespace BDFPatcher
             writeBytes(bytes);
         }
 
-        private BDFChannel[] channels;
-        private BinaryReader reader;
-        private BinaryWriter writer;
+        private BinaryReader reader = null;
+        private BinaryWriter writer = null;
 
         public event PropertyChangedEventHandler PropertyChanged;
         
@@ -525,15 +534,34 @@ namespace BDFPatcher
             }
         }
 
-        private BDFHeader header;
+        private BDFHeader header = null;
         public BDFHeader Header
         {
             get
             {
+                if (header == null)
+                {
+                    try
+                    {
+                        readHeader();
+                    }
+                    catch (BDFHeaderReadException e)
+                    {
+                        throw e;
+                    }
+                }
                 return header;
             }
         }
 
+        private BDFChannel[] channels;
+        public BDFChannel[] Channels
+        {
+            get
+            {
+                return channels;
+            }
+        }
 
         private int _size;
         public int Size

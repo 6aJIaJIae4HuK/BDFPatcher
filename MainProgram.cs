@@ -41,41 +41,24 @@ namespace BDFPatcher
 
                 foreach (string patient in patients.Keys)
                 {
-
-
-                    List<BDFFile> BDFFiles = new List<BDFFile>();
+                    List<KeyValuePair<BDFHeader, string>> headers = new List<KeyValuePair<BDFHeader, string>>();
+                   
                     foreach (string fileName in patients[patient])
                     {
-                        BDFFile newFile = new BDFFile();
-                        Console.WriteLine("Reading file {0}", fileName.Substring(fileName.LastIndexOf('\\') + 1));
-                        if (newFile.tryReadFromFile(fileName))
-                            BDFFiles.Add(newFile);
-                        else
-                            System.Console.WriteLine("FAILED TO READ " + fileName);
+                        BDFReader reader = new BDFReader(fileName);
+                        headers.Add(new KeyValuePair<BDFHeader,string>(reader.readHeader(), fileName));
                     }
 
-                    BDFFiles.Sort((x, y) => DateTime.Compare(x.Header.StartDateTime, y.Header.StartDateTime));
+                    headers.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
 
-                    DateTime curBegin = BDFFiles.First().Header.StartDateTime;
+                    BDFFilesPatcher patcher = new BDFFilesPatcher(targetPath + patient + '\\' + generateFileName(headers.First().Key.StartDateTime, patient));
 
-                    List<BDFFile> curSubList = new List<BDFFile>();
-
-                    foreach (BDFFile file in BDFFiles)
+                    foreach (KeyValuePair<BDFHeader, string> header in headers)
                     {
-                        if ((file.Header.StartDateTime - curBegin).TotalHours >= 24)
-                        {
-                            saveSubList(patient, curSubList);
-                            curSubList.Clear();
-                            curBegin = file.Header.StartDateTime;
-                        }
-                        else
-                        {
-                            curSubList.Add(file);
-                        }
+                        BDFReader reader = new BDFReader(header.Value);
+                        reader.readFile();
+                        patcher.patch(reader.File);
                     }
-                    if (curSubList.Any())
-                        saveSubList(patient, curSubList);
-                    BDFFiles.Clear();
                 }
             }
             catch (Exception e)

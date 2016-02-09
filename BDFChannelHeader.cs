@@ -41,5 +41,20 @@ namespace BDFPatcher
                 return false;
             return true;
         }
+
+        public static BDFChannelHeader Copy(BDFChannelHeader header)
+        {
+            BDFChannelHeader res = new BDFChannelHeader();
+            res.Label = String.Copy(header.Label);
+            res.TransuderType = String.Copy(header.TransuderType);
+            res.Dimension = String.Copy(header.Dimension);
+            res.MinValue = header.MinValue;
+            res.MaxValue = header.MaxValue;
+            res.DigitalMin = header.DigitalMin;
+            res.DigitalMax = header.DigitalMax;
+            res.Prefiltered = String.Copy(header.Prefiltered);
+            res.SamplesPerDataRecord = header.SamplesPerDataRecord;
+            return res;
+        }
     }
 }
