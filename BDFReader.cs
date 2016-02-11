@@ -25,7 +25,7 @@ namespace BDFPatcher
             {
                 throw e;
             }
-            return header;
+            return BDFHeader.Copy(header);
         }
 
         public bool readFile()

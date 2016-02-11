@@ -42,23 +42,75 @@ namespace BDFPatcher
                 foreach (string patient in patients.Keys)
                 {
                     List<KeyValuePair<BDFHeader, string>> headers = new List<KeyValuePair<BDFHeader, string>>();
-                   
+
                     foreach (string fileName in patients[patient])
                     {
                         BDFReader reader = new BDFReader(fileName);
-                        headers.Add(new KeyValuePair<BDFHeader,string>(reader.readHeader(), fileName));
+                        headers.Add(new KeyValuePair<BDFHeader, string>(reader.readHeader(), fileName));
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
                     }
 
                     headers.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
 
-                    BDFFilesPatcher patcher = new BDFFilesPatcher(targetPath + patient + '\\' + generateFileName(headers.First().Key.StartDateTime, patient));
+                    if (!System.IO.Directory.Exists(targetPath + patient))
+                        System.IO.Directory.CreateDirectory(targetPath + patient);
+
+                    DateTime cur = headers.First().Key.StartDateTime;
+                    DateTime pos = cur;
+                    BDFFilesPatcher patcher = null;
+                    {
+                        string name = targetPath + patient + '\\' + generateFileName(pos, patient);
+                        Console.WriteLine(String.Format("Writing to file {0}", name));
+                        patcher = new BDFFilesPatcher(name, cur);
+                    }
 
                     foreach (KeyValuePair<BDFHeader, string> header in headers)
                     {
+
                         BDFReader reader = new BDFReader(header.Value);
-                        reader.readFile();
-                        patcher.patch(reader.File);
+                        Console.WriteLine(String.Format("Read file: {0}", header.Value));
+                        if (!reader.readFile())
+                        {
+                            Console.WriteLine(String.Format("FAILED TO READ FILE: {0}", header.Value));
+                            continue;
+                        }
+
+                        while (header.Key.StartDateTime.CompareTo(cur.AddDays(1.0)) >= 0)
+                        {
+                            cur = cur.AddDays(1.0);
+                            patcher.patchEmpty(reader.File, (int)(cur - pos).TotalSeconds);
+                            pos = cur;
+                            patcher.close();
+                            string name = targetPath + patient + '\\' + generateFileName(pos, patient);
+                            Console.WriteLine(String.Format("Writing to file {0}", name));
+                            patcher = new BDFFilesPatcher(name, cur);
+                        }
+
+                        patcher.patchEmpty(reader.File, (int)(header.Key.StartDateTime - pos).TotalSeconds);
+
+                        pos = header.Key.StartDateTime;
+
+                        DateTime end = header.Key.StartDateTime.AddSeconds(header.Key.RecordCount);
+
+                        while (end.CompareTo(cur.AddDays(1.0)) > 0)
+                        {
+                            patcher.patch(reader.File, (int)(pos - header.Key.StartDateTime).TotalSeconds, (int)(cur.AddDays(1.0) - pos).TotalSeconds);
+                            cur = cur.AddDays(1.0);
+                            pos = cur;
+                            patcher.close();
+                            string name = targetPath + patient + '\\' + generateFileName(pos, patient);
+                            Console.WriteLine(String.Format("Writing to file {0}", name));
+                            patcher = new BDFFilesPatcher(name, cur);
+                        }
+
+                        patcher.patch(reader.File, (int)(pos - header.Key.StartDateTime).TotalSeconds, (int)(end - pos).TotalSeconds);
+                        pos = end;
+
+                        reader = null;
                     }
+
+                    patcher.close();
                 }
             }
             catch (Exception e)
@@ -108,12 +160,9 @@ namespace BDFPatcher
                 str = str.Substring((key + '=').Length);
                 if (!System.IO.Directory.Exists(str))
                 {
-                    throw new Exception(String.Format("Unknown path: {0}", str));
+                    System.IO.Directory.CreateDirectory(str);
                 }
-                else
-                {
-                    return str;
-                }
+                return str;
             }
         }
 
