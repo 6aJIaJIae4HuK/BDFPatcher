@@ -37,6 +37,22 @@ namespace BDFPatcher
             return res;
         }
 
+        public bool tryPatchEmpty(BDFFile file, int recordCount)
+        {
+            bool res;
+            try
+            {
+                patchEmpty(file, recordCount);
+                res = true;
+            }
+            catch (BDFPatchException e)
+            {
+                Console.WriteLine(e.Message);
+                res = false;
+            }
+            return res;
+        }
+
         public void patch(BDFFile file)
         {
             patch(file, 0, file.Header.RecordCount);
@@ -63,7 +79,7 @@ namespace BDFPatcher
                 {
                     for (int sample = 0; sample < header.ChannelHeaders[channel].SamplesPerDataRecord; sample++)
                     {
-                        patchByteInt(file.Channels[channel].Data[off * header.ChannelHeaders[channel].SamplesPerDataRecord + sample], 3);
+                        patchByteInt(file.Channels[channel].Data[dataRecord * header.ChannelHeaders[channel].SamplesPerDataRecord + sample], 3);
                     }
                 }
             }
@@ -72,6 +88,8 @@ namespace BDFPatcher
 
         public void patchEmpty(BDFFile file, int recordCount)
         {
+            if (recordCount < 0)
+                throw new BDFPatchException("Begin of patching piece belows sooner than end of file");
             if (header == null)
             {
                 patchHeader(file.Header);

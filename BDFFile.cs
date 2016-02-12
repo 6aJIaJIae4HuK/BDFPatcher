@@ -9,13 +9,14 @@ namespace BDFPatcher
 {
     class BDFFile : INotifyPropertyChanged
     { 
-        public BDFFile()
+        private BDFFile()
         {
 
         }
 
         public BDFFile(string fileName) //Is this correct??
         {
+            this.fileName = fileName;
             reader = new BinaryReader(File.OpenRead(fileName));
             //readFromFile(fileName);
         }
@@ -31,13 +32,13 @@ namespace BDFPatcher
             catch (BDFHeaderReadException e)
             {
                 Exception ex = e as Exception;
+                Console.WriteLine();
                 while (ex != null)
                 {
                     System.Console.WriteLine(ex.Message);
                     ex = ex.InnerException;
-                    if (ex != null)
-                        System.Console.WriteLine("--------------------");
                 }
+                Console.WriteLine();
                 res = false;
             }
             return res;
@@ -189,7 +190,7 @@ namespace BDFPatcher
                 header = new BDFHeader();
                 byte[] bytes = readBytes(8);
                 if (bytes.Length != 8 || bytes[0] != 255 || !Encoding.ASCII.GetString(bytes.Skip(1).ToArray()).Equals("BIOSEMI"))
-                    throw new Exception("Not BDFFile!");
+                    throw new Exception(String.Format("{0} not BDFFile!", fileName));
                 header.LocalSubject = readStr(80);
                 header.LocalRecording = readStr(80);
                 header.StartDateTime = readDateTime();
@@ -280,7 +281,7 @@ namespace BDFPatcher
             }
             catch (Exception e)
             {
-                throw new BDFReadException("Cannot read header from file " + fileName, e);
+                throw new BDFHeaderReadException("Cannot read header from file " + fileName, e);
             }
         }
 
@@ -547,6 +548,7 @@ namespace BDFPatcher
                     }
                     catch (BDFHeaderReadException e)
                     {
+                        header = null;
                         throw e;
                     }
                 }

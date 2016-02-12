@@ -39,18 +39,28 @@ namespace BDFPatcher
                     patients[patientName].Add(file);
                 }
 
+                foreach (var entry in patients)
+                {
+                    System.Console.WriteLine("{0}:", entry.Key);
+                    foreach (var file in entry.Value)
+                    {
+                        System.Console.WriteLine("\t{0}", file);
+                    }
+                }
+
                 foreach (string patient in patients.Keys)
                 {
+                    if (patient.Equals("Gromov"))
+                        continue;
                     List<KeyValuePair<BDFHeader, string>> headers = new List<KeyValuePair<BDFHeader, string>>();
 
                     foreach (string fileName in patients[patient])
                     {
                         BDFReader reader = new BDFReader(fileName);
                         headers.Add(new KeyValuePair<BDFHeader, string>(reader.readHeader(), fileName));
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
                     }
 
+                    headers.RemoveAll((x) => x.Key == null);
                     headers.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
 
                     if (!System.IO.Directory.Exists(targetPath + patient))
@@ -69,10 +79,20 @@ namespace BDFPatcher
                     {
 
                         BDFReader reader = new BDFReader(header.Value);
-                        Console.WriteLine(String.Format("Read file: {0}", header.Value));
+                        Console.WriteLine(String.Format("Reading file: {0}", header.Value));
                         if (!reader.readFile())
                         {
+                            Console.WriteLine();
                             Console.WriteLine(String.Format("FAILED TO READ FILE: {0}", header.Value));
+                            Console.WriteLine();
+                            continue;
+                        }
+
+                        if (reader.File.Header.StartDateTime.CompareTo(pos) < 0)
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine(String.Format("File {0} begins at time {1}, while data already recorded to {2}", header.Value, reader.File.Header.StartDateTime, pos));
+                            Console.WriteLine();
                             continue;
                         }
 
@@ -112,6 +132,8 @@ namespace BDFPatcher
 
                     patcher.close();
                 }
+
+                System.Console.WriteLine("Success!");
             }
             catch (Exception e)
             {
@@ -170,7 +192,7 @@ namespace BDFPatcher
         {
             string res = "";
 
-            res += dateTime.Year.ToString("D2");
+            res += (dateTime.Year % 100).ToString("D2");
             res += dateTime.Month.ToString("D2");
             res += dateTime.Day.ToString("D2");
 
@@ -189,6 +211,7 @@ namespace BDFPatcher
             return res;
         }
 
+        /*
         private void saveSubList(string patientName, List<BDFFile> files)
         {
             BDFFile newFile = new BDFFile();
@@ -217,5 +240,6 @@ namespace BDFPatcher
                 System.Console.WriteLine("Cannot save patched file " + newFile.FileName);
             }
         }
+        */
     }
 }

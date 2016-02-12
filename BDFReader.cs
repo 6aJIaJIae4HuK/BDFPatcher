@@ -23,14 +23,22 @@ namespace BDFPatcher
             }
             catch (BDFHeaderReadException e)
             {
-                throw e;
+                Exception ex = e as Exception;
+                Console.WriteLine();
+                while (ex != null)
+                {
+                    Console.WriteLine(ex.Message);
+                    ex = ex.InnerException;
+                }
+                Console.WriteLine();
+                return null;
             }
             return BDFHeader.Copy(header);
         }
 
         public bool readFile()
         {
-            file = new BDFFile();
+            file = new BDFFile(fileName);
             return file.tryReadFromFile(fileName);
         }
 
