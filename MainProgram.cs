@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +13,8 @@ namespace BDFPatcher
 
         private string sourcePath;
         private string targetPath;
+
+        private HashSet<string> handledFiles = new HashSet<string>();
         
         public static void Main(string[] argv)
         {
@@ -22,6 +26,7 @@ namespace BDFPatcher
         {
             try
             {
+                initHandledFiles();
                 initPaths();
                 string[] files = System.IO.Directory.GetFiles(sourcePath, "*_*_*_cmpltd.bdf");
                 
@@ -50,12 +55,15 @@ namespace BDFPatcher
 
                 foreach (string patient in patients.Keys)
                 {
-                    if (patient.Equals("Gromov"))
-                        continue;
                     List<KeyValuePair<BDFHeader, string>> headers = new List<KeyValuePair<BDFHeader, string>>();
 
                     foreach (string fileName in patients[patient])
                     {
+                        if (handledFiles.Contains(fileName))
+                        {
+                            System.Console.WriteLine("{0} has been handled", fileName);
+                            continue;
+                        }
                         BDFReader reader = new BDFReader(fileName);
                         headers.Add(new KeyValuePair<BDFHeader, string>(reader.readHeader(), fileName));
                     }
@@ -77,7 +85,6 @@ namespace BDFPatcher
 
                     foreach (KeyValuePair<BDFHeader, string> header in headers)
                     {
-
                         BDFReader reader = new BDFReader(header.Value);
                         Console.WriteLine(String.Format("Reading file: {0}", header.Value));
                         if (!reader.readFile())
@@ -128,6 +135,9 @@ namespace BDFPatcher
                         pos = end;
 
                         reader = null;
+
+                        handledFiles.Add(header.Value);
+
                     }
 
                     patcher.close();
@@ -139,6 +149,20 @@ namespace BDFPatcher
             {
                 System.Console.WriteLine(e.ToString());
             }
+
+
+            saveHandledFiles();
+        }
+
+        private void initHandledFiles()
+        {
+            //geage
+        }
+
+        private void saveHandledFiles()
+        {
+            //defefa
+
         }
 
         private void initPaths()
