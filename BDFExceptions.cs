@@ -76,4 +76,16 @@ namespace BDFPatcher
           System.Runtime.Serialization.StreamingContext context)
             : base(info, context) { }
     }
+
+    [Serializable]
+    public class BDFFileIsNotReadException : Exception
+    {
+        public BDFFileIsNotReadException() { }
+        public BDFFileIsNotReadException(string message) : base(message) { }
+        public BDFFileIsNotReadException(string message, Exception inner) : base(message, inner) { }
+        protected BDFFileIsNotReadException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context)
+            : base(info, context) { }
+    }
 }

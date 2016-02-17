@@ -16,6 +16,7 @@ namespace BDFPatcher
         public int SecondsPerDataRecord { get; set; }
         public int ChannelCount { get; set; }
         public BDFChannelHeader[] ChannelHeaders { get; set; }
+        public byte[] Reserved { get; set; }
 
         public bool compatible(BDFHeader header)
         {
@@ -50,6 +51,22 @@ namespace BDFPatcher
             for (int i = 0; i < res.ChannelCount; i++)
             {
                 res.ChannelHeaders[i] = BDFChannelHeader.Copy(header.ChannelHeaders[i]);
+            }
+            res.Reserved = new byte[header.Reserved.Length];
+            Array.Copy(header.Reserved, res.Reserved, header.Reserved.Length);
+            return res;
+        }
+
+        public bool isHandled()
+        {
+            bool res = true;
+            foreach (byte b in Reserved)
+            {
+                if (b != 0)
+                {
+                    res = false;
+                    break;
+                }
             }
             return res;
         }

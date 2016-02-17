@@ -54,10 +54,22 @@ namespace BDFPatcher
                 readHeader();
                 readBody();
                 reader.Close();
+                isNotRead = false;
             }
             catch (Exception e)
             {
                 throw new BDFReadException("Cannot read file: " + fileName, e);
+            }
+        }
+
+        public void markAsHandled()
+        {
+            if (isNotRead)
+                throw new BDFFileIsNotReadException();
+            using (FileStream stream = new FileStream(fileName, FileMode.Open))
+            {
+                stream.Seek(256 + header.ChannelCount * 224, SeekOrigin.Begin);
+                stream.Write(new byte[header.ChannelCount * 32], 0, header.ChannelCount * 32);
             }
         }
 
@@ -263,7 +275,7 @@ namespace BDFPatcher
                     header.ChannelHeaders[i] = channels[i].Header;
                 }
 
-                reader.ReadBytes(32 * header.ChannelCount);
+                header.Reserved = reader.ReadBytes(32 * header.ChannelCount);
 
                 if (header.RecordCount == -1)
                 {
@@ -523,6 +535,7 @@ namespace BDFPatcher
 
         private BinaryReader reader = null;
         private BinaryWriter writer = null;
+        private bool isNotRead = true;
 
         public event PropertyChangedEventHandler PropertyChanged;
         
@@ -606,6 +619,16 @@ namespace BDFPatcher
             {
                 _curWrote = value;
                 OnPropertyChanged("Wrote");
+            }
+        }
+
+        public bool IsHandled
+        {
+            get
+            {
+                if (isNotRead)
+                    throw new BDFFileIsNotReadException();
+                return header.isHandled();
             }
         }
 

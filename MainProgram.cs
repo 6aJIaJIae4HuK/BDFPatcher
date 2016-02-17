@@ -13,8 +13,6 @@ namespace BDFPatcher
 
         private string sourcePath;
         private string targetPath;
-
-        private HashSet<string> handledFiles = new HashSet<string>();
         
         public static void Main(string[] argv)
         {
@@ -26,7 +24,6 @@ namespace BDFPatcher
         {
             try
             {
-                initHandledFiles();
                 initPaths();
                 string[] files = System.IO.Directory.GetFiles(sourcePath, "*_*_*_cmpltd.bdf");
                 
@@ -59,16 +56,20 @@ namespace BDFPatcher
 
                     foreach (string fileName in patients[patient])
                     {
-                        if (handledFiles.Contains(fileName))
+                        BDFReader reader = new BDFReader(fileName);
+                        BDFHeader header = reader.readHeader();
+                        if (header == null)
+                            continue;
+                        if (header.isHandled())
                         {
-                            System.Console.WriteLine("{0} has been handled", fileName);
+                            System.Console.WriteLine("{0} is already handled", fileName);
                             continue;
                         }
-                        BDFReader reader = new BDFReader(fileName);
-                        headers.Add(new KeyValuePair<BDFHeader, string>(reader.readHeader(), fileName));
+                        headers.Add(new KeyValuePair<BDFHeader, string>(header, fileName));
                     }
 
-                    headers.RemoveAll((x) => x.Key == null);
+                    if (!headers.Any())
+                        continue;
                     headers.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
 
                     if (!System.IO.Directory.Exists(targetPath + patient))
@@ -134,10 +135,10 @@ namespace BDFPatcher
                         patcher.patch(reader.File, (int)(pos - header.Key.StartDateTime).TotalSeconds, (int)(end - pos).TotalSeconds);
                         pos = end;
 
+
+                        reader.File.markAsHandled();
+
                         reader = null;
-
-                        handledFiles.Add(header.Value);
-
                     }
 
                     patcher.close();
@@ -149,20 +150,6 @@ namespace BDFPatcher
             {
                 System.Console.WriteLine(e.ToString());
             }
-
-
-            saveHandledFiles();
-        }
-
-        private void initHandledFiles()
-        {
-            //geage
-        }
-
-        private void saveHandledFiles()
-        {
-            //defefa
-
         }
 
         private void initPaths()
