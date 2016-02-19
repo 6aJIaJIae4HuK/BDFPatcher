@@ -73,6 +73,21 @@ namespace BDFPatcher
             }
         }
 
+        public void setStartDate(DateTime dateTime)
+        {
+            if (isNotRead)
+                throw new BDFFileIsNotReadException();
+            using (FileStream stream = new FileStream(fileName, FileMode.Open))
+            {
+                header.StartDateTime = dateTime;
+                stream.Seek(168, SeekOrigin.Begin);
+                string str = String.Format("{0}.{1}.{2}{3}.{4}.{5}", dateTime.Day.ToString("D2"), dateTime.Month.ToString("D2"), (dateTime.Year % 100).ToString("D2"),
+                                                                     dateTime.Hour.ToString("D2"), dateTime.Minute.ToString("D2"), dateTime.Second.ToString("D2"));
+                byte[] bytes = Encoding.ASCII.GetBytes(str);
+                stream.Write(bytes, 0, bytes.Length);
+            }
+        }
+
         public void saveToFile(string path)
         {
             fileName = path;

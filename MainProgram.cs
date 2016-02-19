@@ -96,13 +96,24 @@ namespace BDFPatcher
                             continue;
                         }
 
+                        //<Stupid piece of shit>
                         if (reader.File.Header.StartDateTime.CompareTo(pos) < 0)
                         {
-                            Console.WriteLine();
-                            Console.WriteLine(String.Format("File {0} begins at time {1}, while data already recorded to {2}", header.Value, reader.File.Header.StartDateTime, pos));
-                            Console.WriteLine();
-                            continue;
+                            reader.File.setStartDate(pos);
+                            //Console.WriteLine();
+                            //Console.WriteLine(String.Format("File {0} begins at time {1}, while data already recorded to {2}", header.Value, reader.File.Header.StartDateTime, pos));
+                            //Console.WriteLine();
+                            //continue;
                         }
+
+                        else
+                        
+                        if ((reader.File.Header.StartDateTime - pos).TotalSeconds <= 10)
+                        {
+                            reader.File.setStartDate(pos);
+                        }
+                        //</Stupid piece of shit>
+
 
                         while (header.Key.StartDateTime.CompareTo(cur.AddDays(1.0)) >= 0)
                         {
