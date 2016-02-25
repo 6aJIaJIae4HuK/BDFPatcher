@@ -77,12 +77,20 @@ namespace BDFPatcher
 
                     DateTime cur = headers.First().Key.StartDateTime;
                     DateTime pos = cur;
-                    BDFFilesPatcher patcher = null;
+
+                    string[] generatedFiles = System.IO.Directory.GetFiles(targetPath + patient + '\\');
+                    List<KeyValuePair<BDFHeader, string>> generatedHeaders = new List<KeyValuePair<BDFHeader, string>>();
+
+                    foreach (string file in generatedFiles)
                     {
-                        string name = targetPath + patient + '\\' + generateFileName(pos, patient);
-                        Console.WriteLine(String.Format("Writing to file {0}", name));
-                        patcher = new BDFFilesPatcher(name, cur);
+                        BDFReader reader = new BDFReader(file);
+                        BDFHeader header = reader.readHeader();
+                        if (header != null)
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader,string>(header, file));
                     }
+
+                    generatedHeaders.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
+
 
                     foreach (KeyValuePair<BDFHeader, string> header in headers)
                     {
@@ -94,6 +102,12 @@ namespace BDFPatcher
                             Console.WriteLine(String.Format("FAILED TO READ FILE: {0}", header.Value));
                             Console.WriteLine();
                             continue;
+                        }
+
+                        if (generatedHeaders.Any())
+                        {
+                            pos = generatedHeaders.Last().Key.StartDateTime.AddSeconds(generatedHeaders.Last().Key.RecordCount);
+                            cur = generatedHeaders.Last().Key.StartDateTime;
                         }
 
                         //<Stupid piece of shit>
@@ -117,42 +131,59 @@ namespace BDFPatcher
 
                         while (header.Key.StartDateTime.CompareTo(cur.AddDays(1.0)) >= 0)
                         {
+                            BDFFilesPatcher patcher = new BDFFilesPatcher(generatedHeaders.Last().Value, cur);
                             cur = cur.AddDays(1.0);
                             patcher.patchEmpty(reader.File, (int)(cur - pos).TotalSeconds);
                             pos = cur;
                             patcher.close();
-                            string name = targetPath + patient + '\\' + generateFileName(pos, patient);
-                            Console.WriteLine(String.Format("Writing to file {0}", name));
-                            patcher = new BDFFilesPatcher(name, cur);
+                            string name = generatedHeaders.Last().Value;
+                            generatedHeaders.Remove(generatedHeaders.Last());
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader,string>(patcher.Header, generatedHeaders.Last().Value));
+
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
                         }
 
-                        patcher.patchEmpty(reader.File, (int)(header.Key.StartDateTime - pos).TotalSeconds);
-
-                        pos = header.Key.StartDateTime;
+                        {
+                            BDFFilesPatcher patcher = new BDFFilesPatcher(generatedHeaders.Last().Value, cur);
+                            patcher.patchEmpty(reader.File, (int)(header.Key.StartDateTime - pos).TotalSeconds);
+                            patcher.close();
+                            string name = generatedHeaders.Last().Value;
+                            generatedHeaders.Remove(generatedHeaders.Last());
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, generatedHeaders.Last().Value));
+                            pos = header.Key.StartDateTime;
+                        }
 
                         DateTime end = header.Key.StartDateTime.AddSeconds(header.Key.RecordCount);
 
                         while (end.CompareTo(cur.AddDays(1.0)) > 0)
                         {
+                            BDFFilesPatcher patcher = new BDFFilesPatcher(generatedHeaders.Last().Value, cur);
                             patcher.patch(reader.File, (int)(pos - header.Key.StartDateTime).TotalSeconds, (int)(cur.AddDays(1.0) - pos).TotalSeconds);
                             cur = cur.AddDays(1.0);
                             pos = cur;
                             patcher.close();
-                            string name = targetPath + patient + '\\' + generateFileName(pos, patient);
-                            Console.WriteLine(String.Format("Writing to file {0}", name));
-                            patcher = new BDFFilesPatcher(name, cur);
+                            string name = generatedHeaders.Last().Value;
+                            generatedHeaders.Remove(generatedHeaders.Last());
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, generatedHeaders.Last().Value));
+
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
                         }
 
-                        patcher.patch(reader.File, (int)(pos - header.Key.StartDateTime).TotalSeconds, (int)(end - pos).TotalSeconds);
-                        pos = end;
+                        {
+                            BDFFilesPatcher patcher = new BDFFilesPatcher(generatedHeaders.Last().Value, cur);
+                            patcher.patch(reader.File, (int)(pos - header.Key.StartDateTime).TotalSeconds, (int)(end - pos).TotalSeconds);
+                            patcher.close();
+                            string name = generatedHeaders.Last().Value;
+                            generatedHeaders.Remove(generatedHeaders.Last());
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, generatedHeaders.Last().Value));
+                            pos = end;
+                        }
 
 
                         reader.File.markAsHandled();
 
                         reader = null;
                     }
-
-                    patcher.close();
                 }
 
                 System.Console.WriteLine("Success!");

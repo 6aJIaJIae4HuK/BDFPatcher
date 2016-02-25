@@ -13,12 +13,32 @@ namespace BDFPatcher
         private FileStream stream;
         private int samplesPerDataRecord = 0;
         private DateTime beginTime;
+        private int recordCountWrote;
 
         public BDFFilesPatcher(string fileName, DateTime beginTime)
         {
-            this.beginTime = beginTime;
             this.fileName = fileName;
-            stream = new FileStream(fileName, FileMode.Create);
+            bool exists = false;
+            if (File.Exists(fileName))
+            {
+                exists = true;
+                BDFReader reader = new BDFReader(fileName);
+                header = reader.readHeader();
+                if (header == null)
+                    exists = false;
+                if (exists)
+                {
+                    stream = new FileStream(fileName, FileMode.Append);
+                    this.beginTime = header.StartDateTime;
+                    recordCountWrote = header.RecordCount;
+                }
+            }
+            if (!exists)
+            {
+                this.beginTime = beginTime;
+                stream = new FileStream(fileName, FileMode.Create);
+                recordCountWrote = 0;
+            }
         }
         
         public bool tryPatch(BDFFile file, int off, int recordCount)
@@ -217,6 +237,12 @@ namespace BDFPatcher
             patchBytes(bytes);
         }
 
-        private int recordCountWrote;
+        public BDFHeader Header
+        {
+            get
+            {
+                return header;
+            }
+        }
     }
 }
