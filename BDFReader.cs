@@ -33,6 +33,10 @@ namespace BDFPatcher
                 Console.WriteLine();
                 return null;
             }
+            finally
+            {
+                file.Close();
+            }
             return BDFHeader.Copy(header);
         }
 

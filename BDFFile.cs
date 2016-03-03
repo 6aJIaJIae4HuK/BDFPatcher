@@ -548,6 +548,14 @@ namespace BDFPatcher
             writeBytes(bytes);
         }
 
+        public void Close()
+        {
+            if (reader != null)
+            {
+                reader.Close();
+            }
+        }
+
         private BinaryReader reader = null;
         private BinaryWriter writer = null;
         private bool isNotRead = true;

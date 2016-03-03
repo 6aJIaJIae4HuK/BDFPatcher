@@ -28,7 +28,8 @@ namespace BDFPatcher
                     exists = false;
                 if (exists)
                 {
-                    stream = new FileStream(fileName, FileMode.Append);
+                    stream = new FileStream(fileName, FileMode.Open);
+                    stream.Seek(0, SeekOrigin.End);
                     this.beginTime = header.StartDateTime;
                     recordCountWrote = header.RecordCount;
                 }
@@ -90,8 +91,8 @@ namespace BDFPatcher
             if (!(header.compatible(file.Header)))
                 throw new BDFPatchException(String.Format("Cannnot patch file {0} to file {1}", file.FileName, fileName));
 
-            if (header.StartDateTime.AddSeconds((double)recordCountWrote).CompareTo(file.Header.StartDateTime.AddSeconds((double)off)) > 0)
-                throw new BDFPatchException("Begin of patching piece belows sooner than end of file");
+            //if (header.StartDateTime.AddSeconds((double)recordCountWrote).CompareTo(file.Header.StartDateTime.AddSeconds((double)off)) > 0)
+            //    throw new BDFPatchException("Begin of patching piece belows sooner than end of file");
 
             for (int dataRecord = 0; dataRecord < recordCount; dataRecord++)
             {
@@ -123,6 +124,7 @@ namespace BDFPatcher
             stream.Seek(8 + 80 + 80 + 8 + 8 + 8 + 44, SeekOrigin.Begin);
             stream.Write(Encoding.ASCII.GetBytes(recordCountWrote.ToString().PadRight(8, ' ')), 0, 8);
             stream.Close();
+            stream.Dispose();
         }
 
         private void patchHeader(BDFHeader header)
