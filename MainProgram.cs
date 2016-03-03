@@ -109,6 +109,10 @@ namespace BDFPatcher
                             pos = generatedHeaders.Last().Key.StartDateTime.AddSeconds(generatedHeaders.Last().Key.RecordCount);
                             cur = generatedHeaders.Last().Key.StartDateTime;
                         }
+                        else
+                        {
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
+                        }
 
                         //<Stupid piece of shit>
                         if (reader.File.Header.StartDateTime.CompareTo(pos) < 0)
@@ -138,7 +142,7 @@ namespace BDFPatcher
                             patcher.close();
                             string name = generatedHeaders.Last().Value;
                             generatedHeaders.Remove(generatedHeaders.Last());
-                            generatedHeaders.Add(new KeyValuePair<BDFHeader,string>(patcher.Header, generatedHeaders.Last().Value));
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader,string>(patcher.Header, name));
 
                             generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
                         }
@@ -149,7 +153,7 @@ namespace BDFPatcher
                             patcher.close();
                             string name = generatedHeaders.Last().Value;
                             generatedHeaders.Remove(generatedHeaders.Last());
-                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, generatedHeaders.Last().Value));
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, name));
                             pos = header.Key.StartDateTime;
                         }
 
@@ -164,7 +168,7 @@ namespace BDFPatcher
                             patcher.close();
                             string name = generatedHeaders.Last().Value;
                             generatedHeaders.Remove(generatedHeaders.Last());
-                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, generatedHeaders.Last().Value));
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, name));
 
                             generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
                         }
@@ -175,7 +179,7 @@ namespace BDFPatcher
                             patcher.close();
                             string name = generatedHeaders.Last().Value;
                             generatedHeaders.Remove(generatedHeaders.Last());
-                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, generatedHeaders.Last().Value));
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, name));
                             pos = end;
                         }
 
