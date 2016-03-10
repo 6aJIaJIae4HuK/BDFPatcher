@@ -31,7 +31,12 @@ namespace BDFPatcher
                     stream = new FileStream(fileName, FileMode.Open);
                     stream.Seek(0, SeekOrigin.End);
                     this.beginTime = header.StartDateTime;
-                    recordCountWrote = header.RecordCount;
+                    recordCountWrote = header.RecordCount; 
+                    samplesPerDataRecord = 0;
+                    for (int i = 0; i < header.ChannelCount; i++)
+                    {
+                        samplesPerDataRecord += header.ChannelHeaders[i].SamplesPerDataRecord;
+                    }
                 }
             }
             if (!exists)
