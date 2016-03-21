@@ -72,7 +72,6 @@ namespace BDFPatcher
                         continue;
                     headers.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
 
-                    /*
                     using (StreamWriter s = new StreamWriter(@"test.txt", false))
                     {
                         foreach (var header in headers)
@@ -80,7 +79,6 @@ namespace BDFPatcher
                             s.WriteLine(header.Key.StartDateTime.ToString("dd-MM-yyyy HH:mm:ss") + " — " + header.Key.RecordCount + " с");
                         }
                     }
-                    */
 
                     if (!System.IO.Directory.Exists(targetPath + patient))
                         System.IO.Directory.CreateDirectory(targetPath + patient);
@@ -101,7 +99,6 @@ namespace BDFPatcher
 
                     generatedHeaders.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
 
-                    //StreamWriter debugStream = new StreamWriter(String.Format("{0}_debug.txt", patient), false);
 
                     foreach (KeyValuePair<BDFHeader, string> header in headers)
                     {
@@ -143,6 +140,12 @@ namespace BDFPatcher
                         }
                         //</Stupid piece of shit>
 
+                        if (!(generatedHeaders.Last().Key == null || generatedHeaders.Last().Key.compatible(reader.File.Header)))
+                        {
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
+                            cur = pos = generatedHeaders.Last().Key.StartDateTime;
+                        }
+
 
                         while (reader.File.Header.StartDateTime.CompareTo(cur.AddDays(1.0)) >= 0)
                         {
@@ -167,13 +170,14 @@ namespace BDFPatcher
                             generatedHeaders.Remove(generatedHeaders.Last());
                             generatedHeaders.Add(new KeyValuePair<BDFHeader, string>((new BDFReader(name)).readHeader(), name));
                             //generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, name));
-                            pos = reader.File.Header.StartDateTime;
+                            pos = header.Key.StartDateTime;
                         }
 
-                        DateTime end = reader.File.Header.StartDateTime.AddSeconds(reader.File.Header.RecordCount);
+                        DateTime end = reader.File.Header.StartDateTime.AddSeconds(header.Key.RecordCount);
 
                         while (end.CompareTo(cur.AddDays(1.0)) > 0)
                         {
+
                             BDFFilesPatcher patcher = new BDFFilesPatcher(generatedHeaders.Last().Value, cur);
                             patcher.patch(reader.File, (int)(pos - reader.File.Header.StartDateTime).TotalSeconds, (int)(cur.AddDays(1.0) - pos).TotalSeconds);
                             cur = cur.AddDays(1.0);
@@ -202,33 +206,9 @@ namespace BDFPatcher
                         reader.File.markAsHandled();
 
                         reader = null;
-                        /*
-                        debugStream.Write("{ ");
-                        foreach (var generatedHeader in generatedHeaders)
-                        {
-                            long byteCount = 0;
-                            using (FileStream tmpStream = new FileStream(generatedHeader.Value, FileMode.Append))
-                            {
-                                byteCount = tmpStream.Length;
-                            }
-                            debugStream.Write(byteCount);
-                            debugStream.Write(' ');
-                        }
-                        debugStream.Write("} -> { ");
-
-                        foreach (var generatedHeader in generatedHeaders)
-                        {
-                            debugStream.Write(generatedHeader.Key.HeaderByteCount + 3 * 2561 * generatedHeader.Key.RecordCount);
-                            debugStream.Write(' ');
-                        }
-                        debugStream.WriteLine('}');
-                        */
                     }
-
-                    //debugStream.Close();
-
                 }
-               
+
                 System.Console.WriteLine("Success!");
             }
             catch (Exception e)
