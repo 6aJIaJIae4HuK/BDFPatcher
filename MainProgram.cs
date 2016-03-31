@@ -71,7 +71,8 @@ namespace BDFPatcher
                     if (!headers.Any())
                         continue;
                     headers.Sort((x, y) => x.Key.StartDateTime.CompareTo(y.Key.StartDateTime));
-
+                    
+                    /*
                     using (StreamWriter s = new StreamWriter(@"test.txt", false))
                     {
                         foreach (var header in headers)
@@ -79,6 +80,7 @@ namespace BDFPatcher
                             s.WriteLine(header.Key.StartDateTime.ToString("dd-MM-yyyy HH:mm:ss") + " — " + header.Key.RecordCount + " с");
                         }
                     }
+                    */
 
                     if (!System.IO.Directory.Exists(targetPath + patient))
                         System.IO.Directory.CreateDirectory(targetPath + patient);
@@ -138,14 +140,14 @@ namespace BDFPatcher
                         {
                             reader.File.setStartDate(pos);
                         }
+
                         //</Stupid piece of shit>
 
                         if (!(generatedHeaders.Last().Key == null || generatedHeaders.Last().Key.compatible(reader.File.Header)))
                         {
+                            cur = pos = reader.File.Header.StartDateTime;
                             generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
-                            cur = pos = generatedHeaders.Last().Key.StartDateTime;
                         }
-
 
                         while (reader.File.Header.StartDateTime.CompareTo(cur.AddDays(1.0)) >= 0)
                         {
@@ -170,7 +172,7 @@ namespace BDFPatcher
                             generatedHeaders.Remove(generatedHeaders.Last());
                             generatedHeaders.Add(new KeyValuePair<BDFHeader, string>((new BDFReader(name)).readHeader(), name));
                             //generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(patcher.Header, name));
-                            pos = header.Key.StartDateTime;
+                            pos = reader.File.Header.StartDateTime;
                         }
 
                         DateTime end = reader.File.Header.StartDateTime.AddSeconds(header.Key.RecordCount);
