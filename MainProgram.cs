@@ -135,10 +135,18 @@ namespace BDFPatcher
                         }
 
                         else
-                        
+
                         if ((reader.File.Header.StartDateTime - pos).TotalSeconds <= 10)
                         {
                             reader.File.setStartDate(pos);
+                        }
+
+                        else
+
+                        if ((reader.File.Header.StartDateTime - pos).TotalDays >= 1)
+                        {
+                            cur = pos = reader.File.Header.StartDateTime;
+                            generatedHeaders.Add(new KeyValuePair<BDFHeader, string>(null, targetPath + patient + '\\' + generateFileName(pos, patient)));
                         }
 
                         //</Stupid piece of shit>

@@ -68,8 +68,9 @@ namespace BDFPatcher
                 throw new BDFFileIsNotReadException();
             using (FileStream stream = new FileStream(fileName, FileMode.Open))
             {
-                stream.Seek(256 + header.ChannelCount * 224, SeekOrigin.Begin);
-                stream.Write(new byte[header.ChannelCount * 32], 0, header.ChannelCount * 32);
+                stream.Seek(256 + header.ChannelCount * 224 + 16, SeekOrigin.Begin);
+                var flag = Enumerable.Repeat<byte>((byte)' ', header.ChannelCount * 32 - 16).ToArray();
+                stream.Write(flag, 0, flag.Length);
             }
         }
 
@@ -79,12 +80,28 @@ namespace BDFPatcher
                 throw new BDFFileIsNotReadException();
             using (FileStream stream = new FileStream(fileName, FileMode.Open))
             {
+                System.Text.RegularExpressions.Regex rgx = new System.Text.RegularExpressions.Regex(@"^(\d{2}.\d{2}.\d{2}){2}$");
+
+                stream.Seek(168, SeekOrigin.Begin);
+                byte[] oldDT = new byte[16];
+                stream.Read(oldDT, 0, oldDT.Length);
+                
                 header.StartDateTime = dateTime;
                 stream.Seek(168, SeekOrigin.Begin);
                 string str = String.Format("{0}.{1}.{2}{3}.{4}.{5}", dateTime.Day.ToString("D2"), dateTime.Month.ToString("D2"), (dateTime.Year % 100).ToString("D2"),
                                                                      dateTime.Hour.ToString("D2"), dateTime.Minute.ToString("D2"), dateTime.Second.ToString("D2"));
                 byte[] bytes = Encoding.ASCII.GetBytes(str);
                 stream.Write(bytes, 0, bytes.Length);
+
+                stream.Seek(256 + header.ChannelCount * 224, SeekOrigin.Begin);
+                stream.Read(bytes, 0, bytes.Length);
+                string possible = Encoding.ASCII.GetString(bytes);
+
+                if (!rgx.IsMatch(possible))
+                {
+                    stream.Seek(256 + header.ChannelCount * 224, SeekOrigin.Begin);
+                    stream.Write(oldDT, 0, oldDT.Length);
+                }
             }
         }
 

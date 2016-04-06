@@ -60,14 +60,8 @@ namespace BDFPatcher
         public bool isHandled()
         {
             bool res = true;
-            foreach (byte b in Reserved)
-            {
-                if (b != 0)
-                {
-                    res = false;
-                    break;
-                }
-            }
+            for (int i = 16; i < Reserved.Length && res; i++)
+                res = res && (Reserved[i] == (byte)' ');
             return res;
         }
     }
